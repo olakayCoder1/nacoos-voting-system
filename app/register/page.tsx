@@ -20,9 +20,9 @@ const matricSchema = z.string().regex(/^\d{2}\/\d{2}HA\d{3}$/, {
 })
 
 const initialState = {
-  error: null,
+  error: undefined,
   success: false,
-  user: null,
+  user: undefined,
 }
 
 export default function Register() {

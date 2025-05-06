@@ -1,159 +1,3 @@
-// "use server"
-
-// import { cookies } from "next/headers"
-// import { redirect } from "next/navigation"
-// import { createServerClient } from "@/lib/supabase/server"
-// import * as bcrypt from "bcryptjs"
-
-// export async function loginStudent(prevState: any, formData: FormData) {
-//   const matricNumber = formData.get("matricNumber") as string
-//   const password = formData.get("password") as string
-
-//   if (!matricNumber || !password) {
-//     return { error: "Matric number and password are required" }
-//   }
-
-//   try {
-//     const supabase = createServerClient()
-
-//     // Get user by matric number
-//     const { data: user, error: userError } = await supabase
-//       .from("users")
-//       .select("*")
-//       .eq("matric_number", matricNumber)
-//       .single()
-
-//     if (userError || !user) {
-//       return { error: "Invalid credentials" }
-//     }
-
-//     // Verify password
-//     const passwordMatch = await bcrypt.compare(password, user.password_hash)
-
-//     if (!passwordMatch) {
-//       return { error: "Invalid credentials" }
-//     }
-
-//     // Create session (in a real app, you'd use Supabase Auth)
-//     cookies().set("user_id", user.id, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === "production",
-//       maxAge: 60 * 60 * 24 * 7, // 1 week
-//       path: "/",
-//     })
-
-//     return { success: true, user: { id: user.id, name: user.name, matricNumber: user.matric_number } }
-//   } catch (error) {
-//     console.error("Login error:", error)
-//     return { error: "An error occurred during login" }
-//   }
-// }
-
-// export async function loginAdmin(prevState: any, formData: FormData) {
-//   const username = formData.get("username") as string
-//   const password = formData.get("password") as string
-
-//   if (!username || !password) {
-//     return { error: "Username and password are required" }
-//   }
-
-//   try {
-//     const supabase = createServerClient()
-
-//     // Get admin by username
-//     const { data: admin, error: adminError } = await supabase
-//       .from("admins")
-//       .select("*")
-//       .eq("username", username)
-//       .single()
-
-//     if (adminError || !admin) {
-//       return { error: "Invalid credentials" }
-//     }
-
-//     // Verify password
-//     const passwordMatch = await bcrypt.compare(password, admin.password_hash)
-
-//     if (!passwordMatch) {
-//       return { error: "Invalid credentials" }
-//     }
-
-//     // Create session
-//     cookies().set("admin_id", admin.id, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === "production",
-//       maxAge: 60 * 60 * 24 * 7, // 1 week
-//       path: "/",
-//     })
-
-//     return { success: true, admin: { id: admin.id, name: admin.name, role: admin.role } }
-//   } catch (error) {
-//     console.error("Login error:", error)
-//     return { error: "An error occurred during login" }
-//   }
-// }
-
-// export async function logout(isAdmin = false) {
-//   if (isAdmin) {
-//     cookies().delete("admin_id")
-//   } else {
-//     cookies().delete("user_id")
-//   }
-
-//   redirect(isAdmin ? "/admin/login" : "/login")
-// }
-
-// export async function registerStudent(prevState: any, formData: FormData) {
-//   const matricNumber = formData.get("matricNumber") as string
-//   const name = formData.get("name") as string
-//   const email = formData.get("email") as string
-//   const password = formData.get("password") as string
-//   const department = formData.get("department") as string
-//   const level = formData.get("level") as string
-
-//   if (!matricNumber || !name || !password) {
-//     return { error: "Matric number, name, and password are required" }
-//   }
-
-//   try {
-//     const supabase = createServerClient()
-
-//     // Check if user already exists
-//     const { data: existingUser } = await supabase.from("users").select("id").eq("matric_number", matricNumber).single()
-
-//     if (existingUser) {
-//       return { error: "A user with this matric number already exists" }
-//     }
-
-//     // Hash password
-//     const passwordHash = await bcrypt.hash(password, 10)
-
-//     // Create user
-//     const { data: newUser, error: createError } = await supabase
-//       .from("users")
-//       .insert({
-//         matric_number: matricNumber,
-//         name,
-//         email,
-//         password_hash: passwordHash,
-//         department,
-//         level,
-//       })
-//       .select()
-//       .single()
-
-//     if (createError) {
-//       return { error: "Failed to create user" }
-//     }
-
-//     return { success: true, user: newUser }
-//   } catch (error) {
-//     console.error("Registration error:", error)
-//     return { error: "An error occurred during registration" }
-//   }
-// }
-
-
 "use server"
 
 import { cookies } from "next/headers"
@@ -230,7 +74,9 @@ export async function loginStudent(prevState: any, formData: FormData) {
     }
 
     // As a fallback, also set the cookies for custom auth
-    cookies().set("user_id", user.id, {
+    (await
+      // As a fallback, also set the cookies for custom auth
+      cookies()).set("user_id", user.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -314,7 +160,9 @@ export async function loginAdmin(prevState: any, formData: FormData) {
     }
 
     // As a fallback, also set the cookies for custom auth
-    cookies().set("admin_id", admin.id, {
+    (await
+      // As a fallback, also set the cookies for custom auth
+      cookies()).set("admin_id", admin.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -336,9 +184,9 @@ export async function logout(isAdmin = false) {
   
   // Also clear cookies
   if (isAdmin) {
-    cookies().delete("admin_id")
+    (await cookies()).delete("admin_id")
   } else {
-    cookies().delete("user_id")
+    (await cookies()).delete("user_id")
   }
 
   redirect(isAdmin ? "/admin/login" : "/login")

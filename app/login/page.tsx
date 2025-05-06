@@ -21,11 +21,11 @@ const matricSchema = z.string().regex(/^\d{2}\/\d{2}HA\d{3}$/, {
 export default function Login() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   const [validationError, setValidationError] = useState("")
   
   // Client-side validation
-  const validateMatricNumber = (matricNumber) => {
+  const validateMatricNumber = (matricNumber: unknown) => {
     try {
       matricSchema.parse(matricNumber)
       return true
@@ -38,7 +38,7 @@ export default function Login() {
   }
 
   // Form submit handler with validation
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: { preventDefault: () => void; target: any }) => {
     event.preventDefault()
     setValidationError("")
     setError(null)
