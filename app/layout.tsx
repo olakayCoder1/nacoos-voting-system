@@ -7,9 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Secure Voting System",
+  title: "Nacoss Voting System",
   description: "A secure voting system for student elections",
-    generator: 'v0.dev'
+    generator: 'olakay'
 }
 
 export default function RootLayout({

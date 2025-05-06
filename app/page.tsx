@@ -9,7 +9,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <header className="bg-primary py-4">
         <div className="container mx-auto px-4">
-          <h1 className="text-2xl font-bold text-primary-foreground">Secure Voting System</h1>
+          <h1 className="text-2xl font-bold text-primary-foreground">Nacoss Voting System</h1>
         </div>
       </header>
 
@@ -131,7 +131,7 @@ export default function Home() {
 
       <footer className="border-t py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Secure Voting System. All rights reserved.
+          &copy; {new Date().getFullYear()} Nacoss Voting System. All rights reserved.
         </div>
       </footer>
     </div>
