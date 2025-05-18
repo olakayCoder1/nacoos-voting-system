@@ -150,7 +150,7 @@ export function useRealTimeVotes(interval = 15000) {
     fetchElectionData()
     
     // Set up polling interval
-    const intervalId = setInterval(fetchElectionData, interval)
+    const intervalId = setInterval(fetchElectionData, 15000)
     
     // Clean up function
     return () => {

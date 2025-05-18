@@ -1,267 +1,254 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { AlertCircle, CheckCircle2 } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useRouter } from "next/navigation"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { CandidateCard } from "@/components/candidate-card"
-import { supabase } from "@/lib/supabase/client"
-import { castVote } from "@/app/actions/voting"
-import { useRealTimeVotes } from "@/hooks/use-real-time-votes"
-import { useToast } from "@/hooks/use-toast"
-import type { Category, Candidate } from "@/lib/types"
-
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { CandidateCard } from "@/components/candidate-card";
+import { supabase } from "@/lib/supabase/client";
+import { castVote } from "@/app/actions/voting";
+import { useRealTimeVotes } from "@/hooks/use-real-time-votes";
+import { useToast } from "@/hooks/use-toast";
+import type { Category, Candidate } from "@/lib/types";
 
 export default function Dashboard() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({})
-  const [votedCandidates, setVotedCandidates] = useState<Record<string, string>>({})
-  const [votingActive, setVotingActive] = useState(true)
-  const [votingMessage, setVotingMessage] = useState("")
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [user, setUser] = useState<{ id: string; name: string; matricNumber: string } | null>(null)
-  const [categoryStatuses, setCategoryStatuses] = useState<Record<string, boolean>>({})
-  const [authError, setAuthError] = useState<string | null>(null)
+  const router = useRouter();
+  const { toast } = useToast();
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({});
+  const [votedCandidates, setVotedCandidates] = useState<Record<string, string>>({});
+  const [votingActive, setVotingActive] = useState(false);
+  const [votingMessage, setVotingMessage] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<{ id: string; name: string; matricNumber: string } | null>(null);
+  const [categoryStatuses, setCategoryStatuses] = useState<Record<string, boolean>>({});
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  // Use real-time votes hook only when voting is active
-  const { votes } = useRealTimeVotes(votingActive)
+  // @ts-ignore
+  const { votes } = useRealTimeVotes(15000);
 
-  // Check authentication status with timeout
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Set a timeout to avoid hanging
         const authTimeout = setTimeout(() => {
-          console.error("Auth check timed out")
-          setAuthError("Authentication check timed out. Please try refreshing the page.")
-          setIsLoading(false)
-        }, 5000) // 5 second timeout
-        
-        // First try with Supabase Auth
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-        
-        // Clear timeout since we got a response
-        clearTimeout(authTimeout)
-        
+          console.error("Auth check timed out");
+          setAuthError("Authentication check timed out. Please try refreshing the page.");
+          setIsLoading(false);
+        }, 5000);
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        clearTimeout(authTimeout);
+
         if (sessionError) {
-          throw sessionError
+          throw sessionError;
         }
-        
+
         if (!sessionData.session) {
-          // If no session, try checking for our custom cookie-based auth
           try {
-            const response = await fetch('/api/auth/check', { 
+            const response = await fetch('/api/auth/check', {
               method: 'GET',
               credentials: 'include',
-              // Add a timeout to the fetch using AbortController
-              signal: AbortSignal.timeout(3000)
+              signal: AbortSignal.timeout(3000),
             });
-            
+
             if (!response.ok) {
-              // No authentication, redirect to login
-              router.push("/login")
-              return false
+              router.push("/login");
+              return false;
             }
-            
-            const userData = await response.json()
+
+            const userData = await response.json();
             setUser({
               id: userData.id,
               name: userData.name,
-              matricNumber: userData.matric_number
-            })
-            return true
+              matricNumber: userData.matric_number,
+            });
+            return true;
           } catch (fetchError) {
-            console.error("Custom auth check error:", fetchError)
-            router.push("/login")
-            return false
+            console.error("Custom auth check error:", fetchError);
+            router.push("/login");
+            return false;
           }
         }
-        
-        // Authentication with Supabase exists
-        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser()
-          
+
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
         if (userError) {
-          throw userError
+          throw userError;
         }
-        
+
         if (authUser) {
-          // Get additional user data from our custom table
           const { data: userData, error: userDataError } = await supabase
             .from("users")
             .select("id, name, matric_number")
             .eq("auth_id", authUser.id)
-            .single()
-          
+            .single();
+
           if (!userDataError && userData) {
             setUser({
               id: userData.id,
               name: userData.name,
               matricNumber: userData.matric_number,
-            })
+            });
           } else {
-            // Try to get user data from auth metadata
-            const metaData = authUser.user_metadata
+            const metaData = authUser.user_metadata;
             if (metaData) {
               setUser({
                 id: authUser.id,
                 name: metaData.name || "Student",
                 matricNumber: metaData.matric_number || "",
-              })
+              });
             }
           }
         }
-        
-        return true
+
+        return true;
       } catch (error) {
-        console.error("Auth check error:", error)
-        setAuthError("Authentication failed. Please try logging in again.")
-        setIsLoading(false)
-        return false
+        console.error("Auth check error:", error);
+        setAuthError("Authentication failed. Please try logging in again.");
+        setIsLoading(false);
+        return false;
       }
-    }
+    };
 
-    checkAuth().then(authenticated => {
-      if (authenticated) {
-        // Proceed with data fetching only if authentication was successful
-        fetchData()
-      }
-    })
-  }, [router])
+    checkAuth();
+  }, [router]);
 
-  // Fetch categories, candidates, and voting status
   const fetchData = async () => {
+    console.log("Starting fetchData");
     try {
-      // Set a timeout to avoid hanging
       const dataTimeout = setTimeout(() => {
-        console.error("Data fetch timed out")
+        console.error("Data fetch timed out");
         toast({
           title: "Timeout Error",
           description: "Failed to load voting data. Please try refreshing the page.",
           variant: "destructive",
-        })
-        setIsLoading(false)
-      }, 10000) // 10 second timeout
-      
+        });
+      }, 10000);
+
       if (!user) {
-        clearTimeout(dataTimeout)
-        return // Don't fetch data if user is not available
+        console.log("No user, exiting fetchData");
+        clearTimeout(dataTimeout);
+        return;
       }
-      
-      // Get general voting status from settings table
+
+      console.log("Fetching voting settings");
       const { data: votingSettings, error: settingsError } = await supabase
         .from("settings")
         .select("value")
         .eq("key", "voting_active")
-        .single()
-      
-      if (settingsError) {
-        console.warn("Settings fetch error:", settingsError)
-        // Continue with default values instead of failing
-      }
-        
-      const globalVotingActive = votingSettings?.value?.status || false
-      setVotingActive(globalVotingActive)
-      setVotingMessage(votingSettings?.value?.message || "")
+        .single();
 
-      // Get categories
+      if (settingsError) {
+        console.warn("Settings fetch error:", settingsError);
+      }
+
+      const globalVotingActive = votingSettings?.value?.status || false;
+      setVotingActive(globalVotingActive);
+      setVotingMessage(votingSettings?.value?.message || "");
+
+      console.log("Fetching categories");
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("categories")
         .select("*")
-        .order("display_order", { ascending: true })
+        .order("display_order", { ascending: true });
 
       if (categoriesError) {
-        throw categoriesError
+        console.error("Categories fetch error:", categoriesError);
+        throw categoriesError;
       }
 
-      // Filter active categories and create status map
-      const activeCategories = categoriesData || []
-      const statusMap: Record<string, boolean> = {}
+      const activeCategories = categoriesData || [];
+      const statusMap: Record<string, boolean> = {};
       activeCategories.forEach(category => {
-        // A category is only truly active if both global voting is active AND the category itself is active
-        statusMap[category.id] = globalVotingActive && category.is_active
-      })
-      
-      setCategoryStatuses(statusMap)
-      setCategories(activeCategories)
+        statusMap[category.id] = globalVotingActive && category.is_active;
+      });
 
-      // Only set active category to first active category
-      const firstActiveCategory = activeCategories.find(c => statusMap[c.id])
+      setCategoryStatuses(statusMap);
+      setCategories(activeCategories);
+
+      const firstActiveCategory = activeCategories.find(c => statusMap[c.id]);
       if (firstActiveCategory) {
-        setActiveCategory(firstActiveCategory.id)
+        setActiveCategory(firstActiveCategory.id);
       } else if (activeCategories.length > 0) {
-        setActiveCategory(activeCategories[0].id)
+        setActiveCategory(activeCategories[0].id);
       }
 
-      // Get candidates for each category
-      const candidatesRecord: Record<string, Candidate[]> = {}
-
-      // Use Promise.all with a reasonable limit to avoid too many parallel requests
-      const chunkSize = 5
+      console.log("Fetching candidates");
+      const candidatesRecord: Record<string, Candidate[]> = {};
+      const chunkSize = 5;
       for (let i = 0; i < activeCategories.length; i += chunkSize) {
-        const chunk = activeCategories.slice(i, i + chunkSize)
-        
+        const chunk = activeCategories.slice(i, i + chunkSize);
         await Promise.all(
           chunk.map(async (category) => {
-            const { data: categoryData, error: candidatesError } = await supabase
-              .from("candidates")
-              .select("*")
-              .eq("category_id", category.id)
+            try {
+              const { data: categoryData, error: candidatesError } = await supabase
+                .from("candidates")
+                .select("*")
+                .eq("category_id", category.id);
 
-            if (candidatesError) {
-              console.error(`Error fetching candidates for category ${category.id}:`, candidatesError)
-              candidatesRecord[category.id] = [] // Use empty array instead of failing
-            } else {
-              candidatesRecord[category.id] = categoryData || []
+              if (candidatesError) {
+                console.error(`Error fetching candidates for category ${category.id}:`, candidatesError);
+                candidatesRecord[category.id] = [];
+              } else {
+                candidatesRecord[category.id] = categoryData || [];
+              }
+            } catch (error) {
+              console.error(`Error in candidate fetch for category ${category.id}:`, error);
+              candidatesRecord[category.id] = [];
             }
-          }),
-        )
+          })
+        );
       }
 
-      setCandidates(candidatesRecord)
+      setCandidates(candidatesRecord);
 
-      // Get user's votes
+      console.log("Fetching user votes");
       const { data: userVotes, error: votesError } = await supabase
         .from("votes")
         .select("category_id, candidate_id")
-        .eq("user_id", user.id)
+        .eq("user_id", user.id);
 
       if (votesError) {
-        console.error("Error fetching user votes:", votesError)
-        // Continue with empty votes instead of failing
+        console.error("Error fetching user votes:", votesError);
       } else {
-        const votedRecord: Record<string, string> = {}
+        const votedRecord: Record<string, string> = {};
         userVotes?.forEach((vote) => {
-          votedRecord[vote.category_id] = vote.candidate_id
-        })
-        setVotedCandidates(votedRecord)
+          votedRecord[vote.category_id] = vote.candidate_id;
+        });
+        setVotedCandidates(votedRecord);
       }
-      
-      // Clear the timeout since we completed successfully
-      clearTimeout(dataTimeout)
-      setIsLoading(false)
+
+      console.log("All API calls completed successfully");
+      clearTimeout(dataTimeout);
     } catch (error) {
-      console.error("Error fetching data:", error)
+      console.error("Error fetching data:", error);
       toast({
         title: "Error",
         description: "Failed to load voting data. Please try refreshing the page.",
         variant: "destructive",
-      })
-      setIsLoading(false)
+      });
+    } finally {
+      console.log("Setting isLoading to false");
+      setIsLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (user) {
+      console.log("User detected, calling fetchData");
+      fetchData();
+    }
+  }, [user]);
 
   const handleVote = async (categoryId: string, candidateId: string) => {
     if (votedCandidates[categoryId]) {
-      return // Already voted in this category
+      return;
     }
 
     if (!categoryStatuses[categoryId]) {
@@ -269,80 +256,75 @@ export default function Dashboard() {
         title: "Voting Closed",
         description: "Voting is currently not active for this category",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
-      // Set a timeout for the vote operation
-      const votePromise = castVote(categoryId, candidateId)
-      const timeoutPromise = new Promise((_, reject) => 
+      const votePromise = castVote(categoryId, candidateId);
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Vote operation timed out")), 5000)
-      )
-      
-      // Race between the vote and the timeout
-      const result = await Promise.race([votePromise, timeoutPromise]) as any
+      );
+
+      const result = await Promise.race([votePromise, timeoutPromise]) as any;
 
       if (result.error) {
         toast({
           title: "Error",
           description: result.error,
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
       setVotedCandidates((prev) => ({
         ...prev,
         [categoryId]: candidateId,
-      }))
+      }));
 
       toast({
         title: "Success",
         description: result.message || "Your vote has been recorded",
-      })
+      });
 
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error("Voting error:", error)
+      console.error("Voting error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to cast your vote",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
-      // Set timeout for logout operation
       const logoutTimeout = setTimeout(() => {
-        console.warn("Logout timed out, forcing navigation")
-        router.push("/login")
-      }, 3000)
-      
-      // Sign out from Supabase Auth
-      await supabase.auth.signOut()
-      
-      // Also call our server logout action to clear cookies
+        console.warn("Logout timed out, forcing navigation");
+        router.push("/login");
+      }, 3000);
+
+      await supabase.auth.signOut();
+
       try {
-        await fetch('/api/auth/logout', { 
+        await fetch('/api/auth/logout', {
           method: 'POST',
           credentials: 'include',
-          signal: AbortSignal.timeout(2000) // 2 second timeout
+          signal: AbortSignal.timeout(2000),
         });
       } catch (fetchError) {
-        console.warn("Custom logout error (continuing anyway):", fetchError)
+        console.warn("Custom logout error (continuing anyway):", fetchError);
       }
-      
-      clearTimeout(logoutTimeout)
-      router.push("/login")
+
+      clearTimeout(logoutTimeout);
+      router.push("/login");
     } catch (error) {
-      console.error("Logout error:", error)
-      router.push("/login")
+      console.error("Logout error:", error);
+      router.push("/login");
     }
-  }
+  };
 
   if (authError) {
     return (
@@ -366,7 +348,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -379,13 +361,12 @@ export default function Dashboard() {
           </div>
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
-  // Find the active category object
-  const currentCategory = categories.find(c => c.id === activeCategory)
-  const isCategoryActive = currentCategory ? categoryStatuses[currentCategory.id] : false
-  const canVoteInCurrentCategory = isCategoryActive
+  const currentCategory = categories.find(c => c.id === activeCategory);
+  const isCategoryActive = currentCategory ? categoryStatuses[currentCategory.id] : false;
+  const canVoteInCurrentCategory = isCategoryActive;
 
   return (
     <DashboardLayout
@@ -403,7 +384,7 @@ export default function Dashboard() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Voting Closed</AlertTitle>
             <AlertDescription>
-              {votingMessage || "Voting is currently not active. Please check back later."}
+              {"Voting is currently not active. Please check back later."}
             </AlertDescription>
           </Alert>
         )}
@@ -542,5 +523,5 @@ export default function Dashboard() {
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }
