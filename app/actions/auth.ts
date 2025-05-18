@@ -23,6 +23,12 @@ export async function loginStudent(prevState: any, formData: FormData) {
       .eq("matric_number", matricNumber)
       .single()
 
+      console.log(
+        user
+      )
+      console.log(
+        userError
+      )
     if (userError || !user) {
       return { error: "Invalid credentials" }
     }
@@ -108,6 +114,9 @@ export async function loginAdmin(prevState: any, formData: FormData) {
       .eq("username", username)
       .single()
 
+
+    console.log(admin, adminError)
+
     if (adminError || !admin) {
       return { error: "Invalid credentials" }
     }
@@ -192,6 +201,13 @@ export async function logout(isAdmin = false) {
   redirect(isAdmin ? "/admin/login" : "/login")
 }
 
+import { createClient } from "@supabase/supabase-js"
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! 
+)
+
 export async function registerStudent(prevState: any, formData: FormData) {
   const matricNumber = formData.get("matricNumber") as string
   const name = formData.get("name") as string
@@ -208,7 +224,11 @@ export async function registerStudent(prevState: any, formData: FormData) {
     const supabase = createServerClient()
 
     // Check if user already exists
-    const { data: existingUser } = await supabase.from("users").select("id").eq("matric_number", matricNumber).single()
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("matric_number", matricNumber)
+      .single()
 
     if (existingUser) {
       return { error: "A user with this matric number already exists" }
@@ -228,15 +248,20 @@ export async function registerStudent(prevState: any, formData: FormData) {
       },
     })
 
-    if (authError) {
+    if (authError || !authData.user) {
       console.error("Auth signup error:", authError)
       return { error: "Failed to create account" }
     }
 
+    // ✅ Force confirm the email using Supabase Admin API
+    await supabaseAdmin.auth.admin.updateUserById(authData.user.id, {
+      email_confirm: true,
+    })
+
     // Hash password for our custom users table
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Create user in our custom table
+    // Create user in custom table
     const { data: newUser, error: createError } = await supabase
       .from("users")
       .insert({
@@ -246,7 +271,7 @@ export async function registerStudent(prevState: any, formData: FormData) {
         password_hash: passwordHash,
         department,
         level,
-        auth_id: authData.user?.id, // Store the auth user ID reference
+        auth_id: authData.user.id,
       })
       .select()
       .single()
@@ -258,6 +283,83 @@ export async function registerStudent(prevState: any, formData: FormData) {
     return { success: true, user: newUser }
   } catch (error) {
     console.error("Registration error:", error)
+    return { error: "An error occurred during registration" }
+  }
+}
+
+
+export async function registerAdmin(prevState: any, formData: FormData) {
+  const username = formData.get("username") as string
+  const name = formData.get("name") as string
+  const email = formData.get("email") as string || `${username}@admin.edu`
+  const password = formData.get("password") as string
+  const role = formData.get("role") as string || "admin"
+
+  if (!username || !name || !password) {
+    return { error: "Username, name, and password are required" }
+  }
+
+  try {
+    const supabase = createServerClient()
+
+    // Check if admin already exists
+    const { data: existingAdmin } = await supabase
+      .from("admins")
+      .select("id")
+      .eq("username", username)
+      .single()
+
+    if (existingAdmin) {
+      return { error: "An admin with this username already exists" }
+    }
+
+    // Create auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+          name,
+          role,
+        },
+      },
+    })
+
+    if (authError || !authData.user) {
+      console.error("Admin auth signup error:", authError)
+      return { error: "Failed to create account" }
+    }
+
+    // Confirm email using Supabase Admin API
+    await supabaseAdmin.auth.admin.updateUserById(authData.user.id, {
+      email_confirm: true,
+    })
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    // Insert into custom `admins` table
+    const { data: newAdmin, error: createError } = await supabase
+      .from("admins")
+      .insert({
+        username,
+        name,
+        email,
+        password_hash: passwordHash,
+        role,
+        auth_id: authData.user.id,
+      })
+      .select()
+      .single()
+
+    if (createError) {
+      return { error: "Failed to create admin" }
+    }
+
+    return { success: true, admin: newAdmin }
+  } catch (error) {
+    console.error("Admin registration error:", error)
     return { error: "An error occurred during registration" }
   }
 }

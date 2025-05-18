@@ -31,12 +31,12 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, user, onLogout, isAdmin = false }: DashboardLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full ">
         <Sidebar>
           <SidebarHeader className="flex h-14 items-center border-b px-4">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <Vote className="h-6 w-6" />
-              <span>Voting System</span>
+              <span>Nacoss Voting System</span>
             </Link>
           </SidebarHeader>
 

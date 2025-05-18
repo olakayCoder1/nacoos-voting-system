@@ -11,6 +11,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { updateSettings } from "@/app/actions/admin"
 import { useToast } from "@/hooks/use-toast"
 
+
 export default function AdminSettings() {
   const router = useRouter()
   const { toast } = useToast()
@@ -28,15 +29,15 @@ export default function AdminSettings() {
       try {
         const response = await fetch("/api/settings")
         const data = await response.json()
-
-        if (data.votingActive) {
-          setVotingActive(data.votingActive.status)
-          setVotingMessage(data.votingActive.message)
+        console.log(data)
+        if (data.voting_active) {
+          setVotingActive(data.voting_active.status)
+          setVotingMessage(data.voting_active.message)
         }
 
-        if (data.showResults) {
-          setShowResults(data.showResults.status)
-          setResultsMessage(data.showResults.message)
+        if (data.show_results) {
+          setShowResults(data.show_results.status)
+          setResultsMessage(data.show_results.message)
         }
 
         setIsLoading(false)
@@ -73,6 +74,8 @@ export default function AdminSettings() {
         status: showResults,
         message: resultsMessage || (showResults ? "Results are now public" : "Results are not yet public"),
       })
+
+      console.log(resultsResult)
 
       if (resultsResult.error) {
         throw new Error(resultsResult.error)

@@ -5,7 +5,10 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Define protected routes
-  const isAdminRoute = path.startsWith("/admin") && !path.startsWith("/admin/login")
+  const isAdminRoute = 
+  path.startsWith("/admin") &&
+  !path.startsWith("/admin/login") &&
+  !path.startsWith("/admin/register")
   const isStudentRoute = path.startsWith("/dashboard") || path.startsWith("/profile") || path.startsWith("/results")
 
   // Get authentication cookies

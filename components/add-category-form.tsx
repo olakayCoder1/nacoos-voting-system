@@ -13,7 +13,7 @@ interface AddCategoryFormProps {
   onCancel: () => void
 }
 
-export function AddCategoryForm({ onSubmit, onCancel }: AddCategoryFormProps) {
+export default function AddCategoryForm({ onSubmit, onCancel }: AddCategoryFormProps) {
   const [name, setName] = useState("")
   const [isActive, setIsActive] = useState(true)
 

@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
@@ -67,6 +66,10 @@ export default function Login() {
     startTransition(async () => {
       try {
         const result = await loginStudent({},formData)
+
+        console.log(result)
+        console.log(result)
+        console.log(result)
         
         if (result?.error) {
           setError(result.error)
@@ -123,11 +126,6 @@ export default function Login() {
               Don't have an account?{" "}
               <Link href="/register" className="hover:text-primary underline underline-offset-4">
                 Register here
-              </Link>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <Link href="/forgot-password" className="hover:text-primary underline underline-offset-4">
-                Forgot password?
               </Link>
             </div>
             <div className="text-sm text-muted-foreground">

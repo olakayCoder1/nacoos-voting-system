@@ -280,34 +280,25 @@ export async function deleteCandidate(candidateId: string) {
   }
 }
 
-// Settings
-export async function updateSettings(key: string, value: { status: boolean; message: string }) {
-  await checkAdminAuth()
 
+export async function updateSettings(key: string, value: Record<string, any>) {
   try {
     const supabase = createServerClient()
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("settings")
-      .update({
-        value,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ value, updated_at: new Date().toISOString() }) 
       .eq("key", key)
-      .select()
-      .single()
 
     if (error) {
-      throw error
+      console.error("Supabase update error:", error)
+      return { error: "Failed to update setting" }
     }
 
-    revalidatePath("/admin/dashboard")
-    revalidatePath("/admin/settings")
-
-    return { success: true, settings: data }
-  } catch (error) {
-    console.error(`Error updating ${key} settings:`, error)
-    return { error: `Failed to update ${key} settings` }
+    return { success: true }
+  } catch (err) {
+    console.error("Unexpected error in updateSettings:", err)
+    return { error: "Unexpected error occurred" }
   }
 }
 

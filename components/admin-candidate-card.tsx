@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -19,17 +19,25 @@ import { useState } from "react"
 
 interface AdminCandidateCardProps {
   candidate: {
-    id: number
+    id: string
     name: string
     bio: string
     image: string
     votes: number
-  }
+    isActive: boolean
+  } | null
   categoryId: string
+  isActive?: boolean
   onDelete?: () => void
+  onToggleActive?: (id: string) => void
 }
 
-export function AdminCandidateCard({ candidate, categoryId, onDelete }: AdminCandidateCardProps) {
+export default function AdminCandidateCard({
+  candidate,
+  categoryId,
+  onDelete,
+  onToggleActive,
+}: AdminCandidateCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const handleDelete = () => {
@@ -37,6 +45,17 @@ export function AdminCandidateCard({ candidate, categoryId, onDelete }: AdminCan
       onDelete()
     }
     setShowDeleteDialog(false)
+  }
+
+  const handleToggleActive = () => {
+    if (onToggleActive) {
+      onToggleActive(candidate.id)
+    }
+  }
+
+
+  if (!candidate) {
+    return <div>Loading...</div> 
   }
 
   return (
@@ -67,6 +86,28 @@ export function AdminCandidateCard({ candidate, categoryId, onDelete }: AdminCan
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
+          {/* Active Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleActive}
+            className={`${
+              candidate.isActive ? "text-success" : "text-muted-foreground"
+            }`}
+          >
+            {candidate.isActive ? (
+              <>
+                <ToggleRight className="mr-2 h-4 w-4" />
+                Deactivate
+              </>
+            ) : (
+              <>
+                <ToggleLeft className="mr-2 h-4 w-4" />
+                Activate
+              </>
+            )}
+          </Button>
+          {/* Delete Dialog */}
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogTrigger asChild>
               <Button
@@ -82,8 +123,8 @@ export function AdminCandidateCard({ candidate, categoryId, onDelete }: AdminCan
               <DialogHeader>
                 <DialogTitle>Confirm Deletion</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to remove {candidate.name} from the {categoryId.replace("-", " ")} category?
-                  This action cannot be undone.
+                  Are you sure you want to remove {candidate.name} from the{" "}
+                  {categoryId.replace("-", " ")} category? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>

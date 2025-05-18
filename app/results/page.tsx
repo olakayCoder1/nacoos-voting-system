@@ -1,424 +1,198 @@
-// "use client"
-
-// import { useState, useEffect } from "react"
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// import { Progress } from "@/components/ui/progress"
-// import { useRouter } from "next/navigation"
-// import { DashboardLayout } from "@/components/dashboard-layout"
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-// import { AlertCircle } from "lucide-react"
-// import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-// import { supabase } from "@/lib/supabase/client"
-// import { getResultsVisibility } from "@/app/actions/voting"
-// import { useRealTimeVotes } from "@/hooks/use-real-time-votes"
-// import { useToast } from "@/hooks/use-toast"
-// import type { Category, Candidate } from "@/lib/types"
-
-// export default function Results() {
-//   const router = useRouter()
-//   const { toast } = useToast()
-//   const [activeTab, setActiveTab] = useState<string | null>(null)
-//   const [categories, setCategories] = useState<Category[]>([])
-//   const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({})
-//   const [showResults, setShowResults] = useState(false)
-//   const [resultsMessage, setResultsMessage] = useState("")
-//   const [isLoading, setIsLoading] = useState(true)
-//   const [user, setUser] = useState<{ id: string; name: string; matricNumber: string } | null>(null)
-
-//   // Use real-time votes hook
-//   const { votes, loading: votesLoading } = useRealTimeVotes()
-
-//   // Fetch user data, categories, candidates, an  loading: votesLoading } = useRealTimeVotes()
-
-//   // Fetch user data, categories, candidates, and results visibility
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       try {
-//         setIsLoading(true)
-
-//         // Get current user
-//         const {
-//           data: { session },
-//         } = await supabase.auth.getSession()
-
-//         if (!session) {
-//           router.push("/login")
-//           return
-//         }
-
-//         const { data: userData, error: userError } = await supabase
-//           .from("users")
-//           .select("id, name, matric_number")
-//           .eq("id", session.user.id)
-//           .single()
-
-//         if (userError || !userData) {
-//           throw new Error("Failed to fetch user data")
-//         }
-
-//         setUser({
-//           id: userData.id,
-//           name: userData.name,
-//           matricNumber: userData.matric_number,
-//         })
-
-//         // Check if results are visible
-//         const resultsVisibility = await getResultsVisibility()
-//         setShowResults(resultsVisibility.visible)
-//         setResultsMessage(resultsVisibility.message)
-
-//         if (resultsVisibility.visible) {
-//           // Get categories
-//           const { data: categoriesData, error: categoriesError } = await supabase
-//             .from("categories")
-//             .select("*")
-//             .eq("is_active", true)
-//             .order("display_order", { ascending: true })
-
-//           if (categoriesError) {
-//             throw categoriesError
-//           }
-
-//           setCategories(categoriesData || [])
-
-//           if (categoriesData && categoriesData.length > 0) {
-//             setActiveTab(categoriesData[0].id)
-
-//             // Get candidates for each category
-//             const candidatesRecord: Record<string, Candidate[]> = {}
-
-//             await Promise.all(
-//               categoriesData.map(async (category) => {
-//                 const { data: categoryData, error: candidatesError } = await supabase
-//                   .from("candidates")
-//                   .select("*")
-//                   .eq("category_id", category.id)
-
-//                 if (candidatesError) {
-//                   throw candidatesError
-//                 }
-
-//                 candidatesRecord[category.id] = categoryData || []
-//               }),
-//             )
-
-//             setCandidates(candidatesRecord)
-//           }
-//         }
-
-//         setIsLoading(false)
-//       } catch (error) {
-//         console.error("Error fetching data:", error)
-//         toast({
-//           title: "Error",
-//           description: "Failed to load results data",
-//           variant: "destructive",
-//         })
-//         setIsLoading(false)
-//       }
-//     }
-
-//     fetchData()
-//   }, [router, toast])
-
-//   const handleLogout = async () => {
-//     await supabase.auth.signOut()
-//     router.push("/login")
-//   }
-
-//   if (isLoading) {
-//     return (
-//       <DashboardLayout
-//         user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
-//         onLogout={handleLogout}
-//       >
-//         <div className="container mx-auto p-4 md:p-6">
-//           <div className="flex items-center justify-center py-20">
-//             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-//           </div>
-//         </div>
-//       </DashboardLayout>
-//     )
-//   }
-
-//   return (
-//     <DashboardLayout
-//       user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
-//       onLogout={handleLogout}
-//     >
-//       <div className="container mx-auto p-4 md:p-6">
-//         <div className="mb-6">
-//           <h1 className="text-3xl font-bold">Election Results</h1>
-//           <p className="text-muted-foreground">View the current election results</p>
-//         </div>
-
-//         {!showResults ? (
-//           <Alert>
-//             <AlertCircle className="h-4 w-4" />
-//             <AlertTitle>Results Not Available</AlertTitle>
-//             <AlertDescription>
-//               {resultsMessage || "The election results have not been made public yet. Please check back later."}
-//             </AlertDescription>
-//           </Alert>
-//         ) : (
-//           <Tabs value={activeTab || ""} onValueChange={setActiveTab} className="space-y-4">
-//             <TabsList className="flex flex-wrap">
-//               {categories.map((category) => (
-//                 <TabsTrigger key={category.id} value={category.id}>
-//                   {category.name}
-//                 </TabsTrigger>
-//               ))}
-//             </TabsList>
-
-//             {categories.map((category) => {
-//               const categoryCandidates = candidates[category.id] || []
-//               const totalVotes = categoryCandidates.reduce((sum, candidate) => sum + (votes[candidate.id] || 0), 0)
-
-//               return (
-//                 <TabsContent key={category.id} value={category.id} className="space-y-4">
-//                   <Card>
-//                     <CardHeader>
-//                       <CardTitle>{category.name} Results</CardTitle>
-//                       <CardDescription>Total votes: {totalVotes}</CardDescription>
-//                     </CardHeader>
-//                     <CardContent>
-//                       <div className="space-y-6">
-//                         {categoryCandidates
-//                           .sort((a, b) => (votes[b.id] || 0) - (votes[a.id] || 0))
-//                           .map((candidate, index) => {
-//                             const candidateVotes = votes[candidate.id] || 0
-//                             const percentage = totalVotes ? Math.round((candidateVotes / totalVotes) * 100) : 0
-
-//                             return (
-//                               <div key={candidate.id} className="space-y-2">
-//                                 <div className="flex items-center gap-4">
-//                                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-//                                     {index === 0 && <span className="text-lg font-bold">🏆</span>}
-//                                     {index !== 0 && <span className="font-medium">{index + 1}</span>}
-//                                   </div>
-//                                   <div className="flex flex-1 items-center gap-2">
-//                                     <Avatar className="h-10 w-10">
-//                                       <AvatarImage
-//                                         src={candidate.image_url || "/placeholder.svg"}
-//                                         alt={candidate.name}
-//                                       />
-//                                       <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
-//                                     </Avatar>
-//                                     <div>
-//                                       <p className="font-medium">{candidate.name}</p>
-//                                       <p className="text-sm text-muted-foreground">{candidateVotes} votes</p>
-//                                     </div>
-//                                   </div>
-//                                   <div className="text-right">
-//                                     <p className="text-lg font-bold">{percentage}%</p>
-//                                   </div>
-//                                 </div>
-//                                 <Progress value={percentage} className="h-2" />
-//                               </div>
-//                             )
-//                           })}
-//                       </div>
-//                     </CardContent>
-//                   </Card>
-//                 </TabsContent>
-//               )
-//             })}
-//           </Tabs>
-//         )}
-//       </div>
-//     </DashboardLayout>
-//   )
-// }
-
-
 "use client"
 
-import { useState, useEffect } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { BarChart3, BarChart, ChevronDown, Lock } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { supabase } from "@/lib/supabase/client"
-import { getResultsVisibility } from "@/app/actions/voting"
 import { useRealTimeVotes } from "@/hooks/use-real-time-votes"
 import { useToast } from "@/hooks/use-toast"
-import type { Category, Candidate } from "@/lib/types"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/lib/supabase/client"
+import VoteDistributionChart from "@/components/vote-distribution-chart"
 
-export default function Results() {
+interface User {
+  id: string
+  name: string
+  matricNumber: string
+}
+
+interface Candidate {
+  id: string
+  name: string
+  image_url?: string
+  votes: number
+}
+
+interface Category {
+  id: string
+  name: string
+  is_active: boolean
+}
+
+interface ElectionResult {
+  category: Category
+  candidates: Candidate[]
+  totalVotes: number
+}
+
+interface Stats {
+  totalVoted: number
+  totalVoters: number
+  participationRate: number
+}
+
+export default function AdminResults() {
   const router = useRouter()
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState<string | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({})
+  const [activeCategory, setActiveCategory] = useState("overview")
+  const [user, setUser] = useState<User | null>(null)
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
   const [showResults, setShowResults] = useState(false)
-  const [resultsMessage, setResultsMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
-  const [authChecked, setAuthChecked] = useState(false)
-  const [user, setUser] = useState<{ id: string; name: string; matricNumber: string } | null>(null)
+  const [isCheckingSettings, setIsCheckingSettings] = useState(true)
+  
+  // Use the enhanced real-time votes hook
+  const { results, stats, isLoading, error } = useRealTimeVotes(15000) 
 
-  // Use real-time votes hook
-  const { votes, loading: votesLoading } = useRealTimeVotes()
+  const handleLogout = () => {
+    router.push("/admin/login")
+  }
 
-  // First check authentication separately to prevent redirect flashes
+  // Check if results are allowed to be shown
+  useEffect(() => {
+    const checkShowResultsSettings = async () => {
+      try {
+        const { data: votingSettings, error } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "show_results")
+          .single()
+        
+        if (!error && votingSettings?.value?.status) {
+          setShowResults(true)
+        } else {
+          setShowResults(false)
+        }
+      } catch (error) {
+        console.error("Error checking show_results settings:", error)
+        setShowResults(false)
+      } finally {
+        setIsCheckingSettings(false)
+      }
+    }
+    
+    checkShowResultsSettings()
+  }, [])
+
+  // Check authentication status - in a separate effect
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Get current user session
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-        if (sessionError) {
-          console.error("Session error:", sessionError)
-          router.push("/login")
-          return
-        }
-
-        // If no session, redirect to login
+        // First try with Supabase Auth
+        const { data: sessionData } = await supabase.auth.getSession()
+        
         if (!sessionData.session) {
-          console.log("No active session found, redirecting to login")
-          router.push("/login")
-          return
-        }
-
-        // Session exists, now get user data
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("id, name, matric_number")
-          .eq("id", sessionData.session.user.id)
-          .single()
-
-        if (userError) {
-          console.error("User data error:", userError)
-          toast({
-            title: "Authentication Error",
-            description: "Unable to retrieve user data. Please login again.",
-            variant: "destructive",
+          // If no session, try checking for our custom cookie-based auth
+          const response = await fetch('/api/auth/check', { 
+            method: 'GET',
+            credentials: 'include' 
+          });
+          
+          if (!response.ok) {
+            // No authentication, redirect to login
+            router.push("/login")
+            return false
+          }
+          
+          const userData = await response.json()
+          setUser({
+            id: userData.id,
+            name: userData.name,
+            matricNumber: userData.matric_number
           })
-          await supabase.auth.signOut()
-          router.push("/login")
-          return
+          setIsAuthChecked(true)
+          return true
         }
-
-        if (!userData) {
-          console.error("No user data found")
-          toast({
-            title: "Authentication Error",
-            description: "User profile not found. Please login again.",
-            variant: "destructive",
-          })
-          await supabase.auth.signOut()
-          router.push("/login")
-          return
+        
+        // Authentication with Supabase exists
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+          
+        if (authUser) {
+          // Get additional user data from our custom table
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("id, name, matric_number")
+            .eq("auth_id", authUser.id)
+            .single()
+          
+          if (!userError && userData) {
+            setUser({
+              id: userData.id,
+              name: userData.name,
+              matricNumber: userData.matric_number,
+            })
+          } else {
+            // Try to get user data from auth metadata
+            const metaData = authUser.user_metadata
+            if (metaData) {
+              setUser({
+                id: authUser.id,
+                name: metaData.name || "Student",
+                matricNumber: metaData.matric_number || "",
+              })
+            }
+          }
         }
-
-        // Set user data and mark auth as checked
-        setUser({
-          id: userData.id,
-          name: userData.name,
-          matricNumber: userData.matric_number,
-        })
-        setAuthChecked(true)
+        
+        setIsAuthChecked(true)
+        return true
       } catch (error) {
-        console.error("Authentication check error:", error)
+        console.error("Auth check error:", error)
         router.push("/login")
+        return false
       }
     }
 
-    checkAuth()
-  }, [router, toast])
-
-  // Only fetch data after authentication is confirmed
-  useEffect(() => {
-    if (!authChecked || !user) return
-
-    const fetchData = async () => {
-      try {
-        // Check if results are visible
-        const resultsVisibility = await getResultsVisibility()
-        setShowResults(resultsVisibility.visible)
-        setResultsMessage(resultsVisibility.message)
-
-        if (resultsVisibility.visible) {
-          // Get categories
-          const { data: categoriesData, error: categoriesError } = await supabase
-            .from("categories")
-            .select("*")
-            .eq("is_active", true)
-            .order("display_order", { ascending: true })
-
-          if (categoriesError) {
-            throw categoriesError
-          }
-
-          setCategories(categoriesData || [])
-
-          if (categoriesData && categoriesData.length > 0) {
-            setActiveTab(categoriesData[0].id)
-
-            // Get candidates for each category
-            const candidatesRecord: Record<string, Candidate[]> = {}
-
-            await Promise.all(
-              categoriesData.map(async (category) => {
-                const { data: categoryData, error: candidatesError } = await supabase
-                  .from("candidates")
-                  .select("*")
-                  .eq("category_id", category.id)
-
-                if (candidatesError) {
-                  throw candidatesError
-                }
-
-                candidatesRecord[category.id] = categoryData || []
-              }),
-            )
-
-            setCandidates(candidatesRecord)
-          }
-        }
-
-        setIsLoading(false)
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load results data",
-          variant: "destructive",
-        })
-        setIsLoading(false)
-      }
+    if (!isAuthChecked) {
+      checkAuth()
     }
+  }, [router, isAuthChecked])
 
-    fetchData()
-  }, [authChecked, user, toast])
-
-  // Set up auth state change listener
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event)
-      if (event === 'SIGNED_OUT') {
-        router.push('/login')
-      }
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
-  }, [router])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
+  // Handle error state
+  if (error) {
+    return (
+      <DashboardLayout 
+        user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
+        onLogout={handleLogout}
+      >
+        <div className="container mx-auto p-4 md:p-6">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="text-red-500 mb-4">Error loading election data</div>
+            <button 
+              className="px-4 py-2 bg-primary text-white rounded"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
   }
 
-  // Show loading state while checking auth or loading data
-  if (!authChecked || isLoading) {
+  // Handle loading state
+  if (isLoading || isCheckingSettings) {
     return (
-      <DashboardLayout
+      <DashboardLayout 
         user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
         onLogout={handleLogout}
       >
@@ -431,90 +205,220 @@ export default function Results() {
     )
   }
 
+  // Handle case when results should not be shown
+  if (!showResults) {
+    return (
+      <DashboardLayout 
+        user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
+        onLogout={handleLogout}
+      >
+        <div className="container mx-auto p-4 md:p-6">
+          <div className="flex flex-col items-center justify-center py-20">
+            <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Results are not available</h2>
+            <p className="text-muted-foreground">Election results are currently not set to be publicly viewable.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Handle no results (empty array)
+  if (!results || results.length === 0) {
+    return (
+      <DashboardLayout 
+        user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
+        onLogout={handleLogout}
+      >
+        <div className="container mx-auto p-4 md:p-6">
+          <div className="flex flex-col items-center justify-center py-20">
+            <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Election Data Available</h2>
+            <p className="text-muted-foreground">There are no active categories or candidates in the system.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Function to render the appropriate content based on selected category
+  const renderContent = () => {
+    if (activeCategory === "overview") {
+      return (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Voting Progress</CardTitle>
+              <CardDescription>Overall voting participation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Total Participation</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stats.totalVoted} out of {stats.totalVoters} voters
+                    </p>
+                  </div>
+                  <div className="text-sm font-medium">{stats.participationRate}%</div>
+                </div>
+                <Progress value={stats.participationRate || 0} className="h-2" /> 
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {results?.slice(0, 2).map((result:any) => {
+              const totalVotes = result.totalVotes
+
+              return (
+                <Card key={result.category.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>{result.category.name}</CardTitle>
+                      <Badge variant={result.category.is_active ? "default" : "outline"}>
+                        {result.category.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      {result.candidates.length} candidates, {totalVotes} votes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {result.candidates
+                        .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+                        .map((candidate) => {
+                          const percentage = totalVotes ? Math.round((candidate.votes / totalVotes) * 100) : 0
+
+                          return (
+                            <div key={candidate.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-medium">{candidate.name}</div>
+                                </div>
+                                <div className="text-sm">{percentage}%</div>
+                              </div>
+                              <Progress value={percentage} className="h-2" />
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )
+    } else {
+      // Find the selected category
+      const selectedResult = results.find((result:any) => result.category.id === activeCategory)
+      
+      if (!selectedResult) return null
+      
+      const totalVotes = selectedResult.totalVotes
+
+      return (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{selectedResult.category.name} Results</CardTitle>
+              <CardDescription>Total votes: {totalVotes}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {selectedResult.candidates
+                  .sort((a: { votes: any }, b: { votes: any }) => (b.votes || 0) - (a.votes || 0))
+                  .map((candidate: { votes: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; id: Key | null | undefined; image_url: any; name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined }, index: number) => {
+                    const percentage = totalVotes ? Math.round((candidate.votes / totalVotes) * 100) : 0
+
+                    return (
+                      <div key={candidate.id} className="space-y-2">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                            {index === 0 && <span className="text-lg font-bold">🏆</span>}
+                            {index !== 0 && <span className="font-medium">{index + 1}</span>}
+                          </div>
+                          <div className="flex flex-1 items-center gap-2">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={candidate.image_url || "/placeholder.svg"} alt={candidate.name} />
+                              <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{candidate.name}</p>
+                              <p className="text-sm text-muted-foreground">{candidate.votes} votes</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold">{percentage}%</p>
+                          </div>
+                        </div>
+                        <Progress value={percentage} className="h-2" />
+                      </div>
+                    )
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Vote Distribution</CardTitle>
+              <CardDescription>Visual representation of votes</CardDescription>
+            </CardHeader>
+            {selectedResult?.candidates ? (
+              <CardContent className="h-80">
+                <VoteDistributionChart candidates={selectedResult.candidates} />
+              </CardContent>
+            ): (
+              <CardContent className="flex h-80 items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <BarChart3 className="h-16 w-16" />
+                  <p>Chart visualization would appear here</p>
+                </div>
+              </CardContent>
+            )}
+            
+          </Card>
+        </div>
+      )
+    }
+  }
+
   return (
-    <DashboardLayout
+    <DashboardLayout 
       user={{ name: user?.name || "Student", matricNumber: user?.matricNumber || "" }}
       onLogout={handleLogout}
     >
       <div className="container mx-auto p-4 md:p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Election Results</h1>
-          <p className="text-muted-foreground">View the current election results</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Election Results</h1>
+            <p className="text-muted-foreground">View the voting results</p>
+          </div>
         </div>
 
-        {!showResults ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Results Not Available</AlertTitle>
-            <AlertDescription>
-              {resultsMessage || "The election results have not been made public yet. Please check back later."}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <Tabs value={activeTab || ""} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="flex flex-wrap">
-              {categories.map((category) => (
-                <TabsTrigger key={category.id} value={category.id}>
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        <div className="mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="font-medium">Category:</div>
+            <Select value={activeCategory} onValueChange={setActiveCategory}>
+              <SelectTrigger className="w-full md:w-[260px]">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">Overview</SelectItem>
+                {results.map((result:any) => (
+                  <SelectItem key={result.category.id} value={result.category.id}>
+                    {result.category.name} {!result.category.is_active && "(Inactive)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-            {categories.map((category) => {
-              const categoryCandidates = candidates[category.id] || []
-              const totalVotes = categoryCandidates.reduce((sum, candidate) => sum + (votes[candidate.id] || 0), 0)
-
-              return (
-                <TabsContent key={category.id} value={category.id} className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{category.name} Results</CardTitle>
-                      <CardDescription>Total votes: {totalVotes}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {categoryCandidates
-                          .sort((a, b) => (votes[b.id] || 0) - (votes[a.id] || 0))
-                          .map((candidate, index) => {
-                            const candidateVotes = votes[candidate.id] || 0
-                            const percentage = totalVotes ? Math.round((candidateVotes / totalVotes) * 100) : 0
-
-                            return (
-                              <div key={candidate.id} className="space-y-2">
-                                <div className="flex items-center gap-4">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                                    {index === 0 && <span className="text-lg font-bold">🏆</span>}
-                                    {index !== 0 && <span className="font-medium">{index + 1}</span>}
-                                  </div>
-                                  <div className="flex flex-1 items-center gap-2">
-                                    <Avatar className="h-10 w-10">
-                                      <AvatarImage
-                                        src={candidate.image_url || "/placeholder.svg"}
-                                        alt={candidate.name}
-                                      />
-                                      <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-medium">{candidate.name}</p>
-                                      <p className="text-sm text-muted-foreground">{candidateVotes} votes</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-lg font-bold">{percentage}%</p>
-                                  </div>
-                                </div>
-                                <Progress value={percentage} className="h-2" />
-                              </div>
-                            )
-                          })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )
-            })}
-          </Tabs>
-        )}
+        {renderContent()}
       </div>
     </DashboardLayout>
   )
