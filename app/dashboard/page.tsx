@@ -16,6 +16,7 @@ import { useRealTimeVotes } from "@/hooks/use-real-time-votes"
 import { useToast } from "@/hooks/use-toast"
 import type { Category, Candidate } from "@/lib/types"
 
+
 export default function Dashboard() {
   const router = useRouter()
   const { toast } = useToast()
