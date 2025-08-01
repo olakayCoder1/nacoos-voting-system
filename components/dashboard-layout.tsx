@@ -109,14 +109,14 @@ export function DashboardLayout({ children, user, onLogout, isAdmin = false }: D
                     </SidebarMenuButton>
                   </SidebarMenuItem> */}
 
-                  <SidebarMenuItem>
+                  {/* <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/profile">
                         <User className="h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  </SidebarMenuItem> */}
 
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
