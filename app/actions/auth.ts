@@ -211,7 +211,7 @@ const supabaseAdmin = createClient(
 export async function registerStudent(prevState: any, formData: FormData) {
   const matricNumber = formData.get("matricNumber") as string
   const name = formData.get("name") as string
-  const email = formData.get("email") as string || `${matricNumber}@student.edu`
+  const email = (formData.get("email") as string || `${matricNumber}@student.edu`).toLowerCase()
   const password = formData.get("password") as string
   const department = formData.get("department") as string
   const level = formData.get("level") as string
