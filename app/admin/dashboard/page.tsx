@@ -116,7 +116,9 @@ export default function AdminDashboard() {
     // Populate candidates into their categories
     data.forEach(candidate => {
       // Calculate votes for each candidate
-      const voteCount = candidate.votes.length
+      const voteCount = candidate.votes.count 
+
+      console.log(voteCount) 
       
       // Process candidate data
       candidatesByCategory[candidate.category_id] = [
@@ -127,7 +129,7 @@ export default function AdminDashboard() {
           bio: candidate.bio || "",
           image: candidate.photo_url || "/placeholder.svg?height=100&width=100",
           isActive: candidate.is_active,
-          votes: voteCount
+          votes: voteCount || 0
         }
       ]
     })
