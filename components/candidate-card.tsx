@@ -9,6 +9,7 @@ import { CheckCircle2 } from "lucide-react"
 
 interface CandidateCardProps {
   candidate: {
+    photo_url: string
     id: string
     name: string
     bio?: string
@@ -56,7 +57,7 @@ export function CandidateCard({
           )}
           <div className="flex flex-col items-center">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={candidate.image_url || "/placeholder.svg"} alt={candidate.name} />
+              <AvatarImage src={candidate.photo_url || "/placeholder.svg"} alt={candidate.name} />
               <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <CardTitle className="mt-4 text-center">{candidate.name}</CardTitle>
