@@ -122,12 +122,12 @@ export default function Login() {
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-3">
-            {/* <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link href="/register" className="hover:text-primary underline underline-offset-4">
                 Register here
               </Link>
-            </div> */}
+            </div>
             <div className="text-sm text-muted-foreground">
               <Link href="/admin/login" className="hover:text-primary underline underline-offset-4">
                 Admin Login
